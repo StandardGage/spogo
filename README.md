@@ -80,7 +80,7 @@ Commands:
 - `auth status|import|clear`
 - `search track|album|artist|playlist|show|episode`
 - `track info`, `album info`, `artist info`, `playlist info`, `show info`, `episode info`
-- `play [<id|url>] [--type ...]`, `pause`, `next`, `prev`, `seek`, `volume`, `shuffle`, `repeat`, `status`
+- `play [<id|url>] [--type ...] [--shuffle]`, `pause`, `next`, `prev`, `seek`, `volume`, `shuffle`, `repeat`, `status`
 - `queue add|show`
 - `library tracks|albums|artists|playlists`
 - `playlist create|add|remove|tracks`

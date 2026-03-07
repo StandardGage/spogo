@@ -49,7 +49,10 @@ func itemHuman(w *output.Writer, item spotify.Item) string {
 	case "artist":
 		return fmt.Sprintf("%s %s", accent(item.Name), muted(fmt.Sprintf("· %d followers", item.Followers)))
 	case "playlist":
-		return fmt.Sprintf("%s — %s %s", accent(item.Name), item.Owner, muted(fmt.Sprintf("· %d tracks", item.TotalTracks)))
+		if item.TotalTracks > 0 {
+			return fmt.Sprintf("%s — %s %s", accent(item.Name), item.Owner, muted(fmt.Sprintf("· %d tracks", item.TotalTracks)))
+		}
+		return fmt.Sprintf("%s — %s", accent(item.Name), item.Owner)
 	case "show":
 		return fmt.Sprintf("%s — %s %s", accent(item.Name), item.Publisher, muted(fmt.Sprintf("· %d episodes", item.TotalEpisodes)))
 	case "episode":

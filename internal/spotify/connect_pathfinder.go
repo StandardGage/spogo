@@ -13,6 +13,9 @@ import (
 const pathfinderURL = "https://api-partner.spotify.com/pathfinder/v1/query"
 
 func (c *ConnectClient) graphQL(ctx context.Context, operation string, variables map[string]any) (map[string]any, error) {
+	if c.session == nil {
+		return nil, errors.New("connect client not initialized")
+	}
 	auth, err := c.session.auth(ctx)
 	if err != nil {
 		return nil, err
@@ -225,6 +228,105 @@ func (c *ConnectClient) ArtistTopTracks(ctx context.Context, id string, limit in
 		return nil, err
 	}
 	return web.ArtistTopTracks(ctx, id, limit)
+}
+
+func (c *ConnectClient) playlists(ctx context.Context, limit, offset int) ([]Item, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	variables := map[string]any{
+		"filters":                      []any{"Playlists"},
+		"order":                        nil,
+		"textFilter":                   "",
+		"features":                     []any{"LIKED_SONGS", "YOUR_EPISODES"},
+		"limit":                        limit,
+		"offset":                       offset,
+		"flatten":                      false,
+		"expandedFolders":              []any{},
+		"folderUri":                    nil,
+		"includeFoldersWhenFlattening": true,
+		"withCuration":                 false,
+	}
+	payload, err := c.graphQL(ctx, "libraryV3", variables)
+	if err != nil {
+		return nil, 0, err
+	}
+	items, total := extractLibraryV3Items(payload, "playlist")
+	return items, total, nil
+}
+
+func (c *ConnectClient) playlistTracks(ctx context.Context, id string, limit, offset int) ([]Item, int, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+	variables := map[string]any{
+		"uri":                       "spotify:playlist:" + id,
+		"offset":                    offset,
+		"limit":                     limit,
+		"enableWatchFeedEntrypoint": false,
+	}
+	payload, err := c.graphQL(ctx, "fetchPlaylist", variables)
+	if err != nil {
+		return nil, 0, err
+	}
+	items := collectItemsByKind(payload, "track")
+	total := len(items)
+	if content, ok := getMap(payload, "data", "playlistV2", "content"); ok {
+		if t := getInt(content, "totalCount"); t > 0 {
+			total = t
+		}
+	}
+	return items, total, nil
+}
+
+func (c *ConnectClient) libraryTracks(ctx context.Context, limit, offset int) ([]Item, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	variables := map[string]any{
+		"filters":                      []any{"Songs"},
+		"order":                        nil,
+		"textFilter":                   "",
+		"features":                     []any{"LIKED_SONGS", "YOUR_EPISODES"},
+		"limit":                        limit,
+		"offset":                       offset,
+		"flatten":                      false,
+		"expandedFolders":              []any{},
+		"folderUri":                    nil,
+		"includeFoldersWhenFlattening": true,
+		"withCuration":                 false,
+	}
+	payload, err := c.graphQL(ctx, "libraryV3", variables)
+	if err != nil {
+		return nil, 0, err
+	}
+	items, total := extractLibraryV3Items(payload, "track")
+	return items, total, nil
+}
+
+func (c *ConnectClient) libraryAlbums(ctx context.Context, limit, offset int) ([]Item, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	variables := map[string]any{
+		"filters":                      []any{"Albums"},
+		"order":                        nil,
+		"textFilter":                   "",
+		"features":                     []any{"LIKED_SONGS", "YOUR_EPISODES"},
+		"limit":                        limit,
+		"offset":                       offset,
+		"flatten":                      false,
+		"expandedFolders":              []any{},
+		"folderUri":                    nil,
+		"includeFoldersWhenFlattening": true,
+		"withCuration":                 false,
+	}
+	payload, err := c.graphQL(ctx, "libraryV3", variables)
+	if err != nil {
+		return nil, 0, err
+	}
+	items, total := extractLibraryV3Items(payload, "album")
+	return items, total, nil
 }
 
 func (c *ConnectClient) infoByOperation(ctx context.Context, operation string, variables map[string]any, kind string) (Item, error) {

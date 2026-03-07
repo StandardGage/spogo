@@ -3,6 +3,7 @@ package spotify
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -57,6 +58,12 @@ func TestConnectPlaybackCommands(t *testing.T) {
 	}
 	if err := client.Play(context.Background(), "spotify:track:abc"); err != nil {
 		t.Fatalf("play uri: %v", err)
+	}
+	if err := client.Play(context.Background(), "spotify:playlist:abc"); err != nil {
+		t.Fatalf("play playlist: %v", err)
+	}
+	if err := client.Play(context.Background(), "spotify:album:xyz"); err != nil {
+		t.Fatalf("play album: %v", err)
 	}
 	if err := client.Pause(context.Background()); err != nil {
 		t.Fatalf("pause: %v", err)
@@ -369,6 +376,64 @@ func TestConnectPlaybackErrorPaths(t *testing.T) {
 	}
 	if err := client.Transfer(context.Background(), "device-1"); err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestConnectPlayContextURIPayload(t *testing.T) {
+	statePayload := map[string]any{
+		"devices": map[string]any{
+			"device-1": map[string]any{"name": "Desk", "device_type": "computer"},
+		},
+		"player_state": map[string]any{
+			"is_paused":   false,
+			"position_ms": 0,
+		},
+		"active_device_id": "device-1",
+	}
+	var capturedBody string
+	transport := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		switch {
+		case req.Method == http.MethodPut && strings.Contains(req.URL.Path, "/devices/hobs_"):
+			return jsonResponse(http.StatusOK, statePayload), nil
+		case req.Method == http.MethodPost:
+			b, _ := io.ReadAll(req.Body)
+			capturedBody = string(b)
+			return textResponse(http.StatusOK, "ok"), nil
+		default:
+			return textResponse(http.StatusNotFound, "missing"), nil
+		}
+	})
+
+	newClient := func() *ConnectClient {
+		c := newConnectClientForTests(transport)
+		c.session.connectDeviceID = "device"
+		c.session.connectionID = "conn"
+		c.session.registeredAt = time.Now()
+		return c
+	}
+
+	// Context URI (playlist) — must use "context" field, not "track_uri"
+	capturedBody = ""
+	if err := newClient().Play(context.Background(), "spotify:playlist:pl1"); err != nil {
+		t.Fatalf("play playlist: %v", err)
+	}
+	if !strings.Contains(capturedBody, `"context"`) {
+		t.Errorf("playlist play: expected context field in body, got: %s", capturedBody)
+	}
+	if strings.Contains(capturedBody, `"track_uri"`) {
+		t.Errorf("playlist play: unexpected track_uri in body: %s", capturedBody)
+	}
+
+	// Track URI — must use "track_uri" and also include "context" (track as its own context)
+	capturedBody = ""
+	if err := newClient().Play(context.Background(), "spotify:track:t1"); err != nil {
+		t.Fatalf("play track: %v", err)
+	}
+	if !strings.Contains(capturedBody, `"track_uri"`) {
+		t.Errorf("track play: expected track_uri field in body, got: %s", capturedBody)
+	}
+	if !strings.Contains(capturedBody, `"context"`) {
+		t.Errorf("track play: expected context field in body, got: %s", capturedBody)
 	}
 }
 

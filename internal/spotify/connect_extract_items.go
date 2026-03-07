@@ -5,6 +5,48 @@ import (
 	"strings"
 )
 
+// extractLibraryV3Items navigates the specific libraryV3 response path
+// data.me.libraryV3.items[i].item.data to extract items of the given kind.
+// Using a targeted path avoids the duplicates and fake sort-category entries
+// that a full recursive walk would produce.
+func extractLibraryV3Items(payload map[string]any, kind string) ([]Item, int) {
+	lib, ok := getMap(payload, "data", "me", "libraryV3")
+	if !ok {
+		return nil, 0
+	}
+	total := getInt(lib, "totalCount")
+	rawItems, _ := lib["items"].([]any)
+	items := make([]Item, 0, len(rawItems))
+	seen := map[string]struct{}{}
+	for _, raw := range rawItems {
+		m, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		itemWrapper, ok := m["item"].(map[string]any)
+		if !ok {
+			continue
+		}
+		dataM, ok := itemWrapper["data"].(map[string]any)
+		if !ok {
+			continue
+		}
+		item, ok := extractItem(dataM, kind)
+		if !ok {
+			continue
+		}
+		if _, dup := seen[item.URI]; dup {
+			continue
+		}
+		seen[item.URI] = struct{}{}
+		items = append(items, item)
+	}
+	if total == 0 {
+		total = len(items)
+	}
+	return items, total
+}
+
 func extractSearchItems(payload map[string]any, kind string) ([]Item, int) {
 	paths := searchPaths(kind)
 	for _, path := range paths {

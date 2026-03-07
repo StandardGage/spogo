@@ -3,7 +3,6 @@ package spotify
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -138,41 +137,97 @@ func (c *ConnectClient) Queue(ctx context.Context) (Queue, error) {
 }
 
 func (c *ConnectClient) LibraryTracks(ctx context.Context, limit, offset int) ([]Item, int, error) {
-	return nil, 0, fmt.Errorf("%w: library tracks not supported in connect engine yet", ErrUnsupported)
+	items, total, err := c.libraryTracks(ctx, limit, offset)
+	if err == nil {
+		return items, total, nil
+	}
+	web, werr := c.webClient()
+	if werr != nil {
+		return nil, 0, err
+	}
+	return web.LibraryTracks(ctx, limit, offset)
 }
 
 func (c *ConnectClient) LibraryAlbums(ctx context.Context, limit, offset int) ([]Item, int, error) {
-	return nil, 0, fmt.Errorf("%w: library albums not supported in connect engine yet", ErrUnsupported)
+	items, total, err := c.libraryAlbums(ctx, limit, offset)
+	if err == nil {
+		return items, total, nil
+	}
+	web, werr := c.webClient()
+	if werr != nil {
+		return nil, 0, err
+	}
+	return web.LibraryAlbums(ctx, limit, offset)
 }
 
 func (c *ConnectClient) LibraryModify(ctx context.Context, path string, ids []string, method string) error {
-	return fmt.Errorf("%w: library modify not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return err
+	}
+	return web.LibraryModify(ctx, path, ids, method)
 }
 
 func (c *ConnectClient) FollowArtists(ctx context.Context, ids []string, method string) error {
-	return fmt.Errorf("%w: follow artists not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return err
+	}
+	return web.FollowArtists(ctx, ids, method)
 }
 
 func (c *ConnectClient) FollowedArtists(ctx context.Context, limit int, after string) ([]Item, int, string, error) {
-	return nil, 0, "", fmt.Errorf("%w: followed artists not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return nil, 0, "", err
+	}
+	return web.FollowedArtists(ctx, limit, after)
 }
 
 func (c *ConnectClient) Playlists(ctx context.Context, limit, offset int) ([]Item, int, error) {
-	return nil, 0, fmt.Errorf("%w: playlists not supported in connect engine yet", ErrUnsupported)
+	items, total, err := c.playlists(ctx, limit, offset)
+	if err == nil {
+		return items, total, nil
+	}
+	web, werr := c.webClient()
+	if werr != nil {
+		return nil, 0, err
+	}
+	return web.Playlists(ctx, limit, offset)
 }
 
 func (c *ConnectClient) PlaylistTracks(ctx context.Context, id string, limit, offset int) ([]Item, int, error) {
-	return nil, 0, fmt.Errorf("%w: playlist tracks not supported in connect engine yet", ErrUnsupported)
+	items, total, err := c.playlistTracks(ctx, id, limit, offset)
+	if err == nil {
+		return items, total, nil
+	}
+	web, werr := c.webClient()
+	if werr != nil {
+		return nil, 0, err
+	}
+	return web.PlaylistTracks(ctx, id, limit, offset)
 }
 
 func (c *ConnectClient) CreatePlaylist(ctx context.Context, name string, public, collaborative bool) (Item, error) {
-	return Item{}, fmt.Errorf("%w: create playlist not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return Item{}, err
+	}
+	return web.CreatePlaylist(ctx, name, public, collaborative)
 }
 
 func (c *ConnectClient) AddTracks(ctx context.Context, playlistID string, uris []string) error {
-	return fmt.Errorf("%w: add tracks not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return err
+	}
+	return web.AddTracks(ctx, playlistID, uris)
 }
 
 func (c *ConnectClient) RemoveTracks(ctx context.Context, playlistID string, uris []string) error {
-	return fmt.Errorf("%w: remove tracks not supported in connect engine yet", ErrUnsupported)
+	web, err := c.webClient()
+	if err != nil {
+		return err
+	}
+	return web.RemoveTracks(ctx, playlistID, uris)
 }

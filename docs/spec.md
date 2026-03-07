@@ -66,6 +66,7 @@ spogo [global flags] <command> [args]
 
 - `spogo play [<id|url>]` (track/album/playlist/show)
   - optional: `--type <track|album|playlist|show|episode>` for raw IDs
+  - optional: `--shuffle` enable shuffle before playing (randomizes first track for context URIs)
   - artist URIs play top tracks (starts with the first)
 - `spogo pause`
 - `spogo next`
