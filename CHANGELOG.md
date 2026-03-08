@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-03-08
+
+- Release prep: bump CLI/spec version to `0.3.0`
+
 ## 0.2.0 - 2026-01-07
 
 - Add `applescript` engine for direct Spotify.app control on macOS (thanks @adam91holt)
